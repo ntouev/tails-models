@@ -30,17 +30,17 @@ p = interp1(ac_data.timestamp, ac_data.rate_p, t, "linear", "extrap");
 q = interp1(ac_data.timestamp, ac_data.rate_q, t, "linear", "extrap");
 r = interp1(ac_data.timestamp, ac_data.rate_r, t, "linear", "extrap");
 
-act1 = interp1(ac_data.timestamp, ac_data.actuators_0, t, "linear", "extrap");
-act2 = interp1(ac_data.timestamp, ac_data.actuators_1, t, "linear", "extrap");
-act3 = interp1(ac_data.timestamp, ac_data.actuators_2, t, "linear", "extrap");
-act4 = interp1(ac_data.timestamp, ac_data.actuators_3, t, "linear", "extrap");
+cmd_TL = interp1(ac_data.timestamp, ac_data.cmd_TL, t, "linear", "extrap");
+cmd_TR = interp1(ac_data.timestamp, ac_data.cmd_TR, t, "linear", "extrap");
+cmd_BR = interp1(ac_data.timestamp, ac_data.cmd_BR, t, "linear", "extrap");
+cmd_BL = interp1(ac_data.timestamp, ac_data.cmd_BL, t, "linear", "extrap");
 
 %% 1st order actuator dynamics (pprz units)
 G1 = tf(1, [1/54 1]);
-act1 = lsim(G1, act1, t);
-act2 = lsim(G1, act2, t);
-act3 = lsim(G1, act3, t);
-act4 = lsim(G1, act4, t);
+actTL = lsim(G1, cmd_TL, t);
+actTR = lsim(G1, cmd_TR, t);
+actBR = lsim(G1, cmd_BR, t);
+actBL = lsim(G1, cmd_BL, t);
 
 %% filter with Butterworth (+ Notch???)
 % Butterworth
@@ -51,43 +51,39 @@ pf = filter(b, a, p, get_ic(b,a,p(1)));
 qf = filter(b, a, q, get_ic(b,a,q(1)));
 rf = filter(b, a, r, get_ic(b,a,r(1)));
 
-act1f = filter(b, a, act1, get_ic(b,a,act1(1)));
-act2f = filter(b, a, act2, get_ic(b,a,act2(1)));
-act3f = filter(b, a, act3, get_ic(b,a,act3(1)));
-act4f = filter(b, a, act4, get_ic(b,a,act4(1)));
+actTLf = filter(b, a, actTL, get_ic(b,a,actTL(1)));
+actTRf = filter(b, a, actTR, get_ic(b,a,actTR(1)));
+actBRf = filter(b, a, actBR, get_ic(b,a,actBR(1)));
+actBLf = filter(b, a, actBL, get_ic(b,a,actBL(1)));
 
 %% find derivatives of filtered values
 pf_d = [zeros(1,1); diff(pf,1)]*fs;
-% pf_dd = [zeros(1,1); diff(pf_d,1)]*fs;
 qf_d = [zeros(1,1); diff(qf,1)]*fs;
-% qf_dd = [zeros(1,1); diff(qf_d,1)]*fs;
 rf_d = [zeros(1,1); diff(rf,1)]*fs;
 
-act1f_d = [zeros(1,1); diff(act1f,1)]*fs;
-act2f_d = [zeros(1,1); diff(act2f,1)]*fs;
-act3f_d = [zeros(1,1); diff(act3f,1)]*fs;
-act4f_d = [zeros(1,1); diff(act4f,1)]*fs;
+actTLf_d = [zeros(1,1); diff(actTLf,1)]*fs;
+actTRf_d = [zeros(1,1); diff(actTRf,1)]*fs;
+actBRf_d = [zeros(1,1); diff(actBRf,1)]*fs;
+actBLf_d = [zeros(1,1); diff(actBLf,1)]*fs;
 
 %% Roll effectiveness
 output_roll = pf_d(datarange);
 inputs_roll = [ones(length(t(datarange)),1), ...
-               (act3f(datarange) + act4f(datarange)) - (act1f(datarange) + act2f(datarange))]; 
-% inputs_roll = 2*act3f(datarange).*act3f_d(datarange) + 2*act4f(datarange).*act4f_d(datarange) - ...
-%               (2*act1f(datarange).*act2f_d(datarange) + 2*act1f(datarange).*act2f_d(datarange));
+               (actTLf(datarange) + actBLf(datarange)) - (actTRf(datarange) + actBRf(datarange))]; 
 
 Groll = inputs_roll\output_roll;
 
 %% Pitch effectiveness
 output_pitch = qf_d(datarange);
 inputs_pitch = [ones(length(t(datarange)),1), ...
-                (act2f(datarange) + act4f(datarange)) - (act1f(datarange) + act3f(datarange))]; 
+                (actTLf(datarange) + actTRf(datarange)) - (actBLf(datarange) + actBRf(datarange))]; 
 
 Gpitch = inputs_pitch\output_pitch;
 
 %% Yaw effectiveness
 output_yaw = rf_d(datarange);
 inputs_yaw = [ones(length(t(datarange)),1), ...
-              (act2f(datarange) + act3f(datarange)) - (act1f(datarange) + act4f(datarange))]; 
+              (actTRf(datarange) + actBLf(datarange)) - ((actTLf(datarange) + actBRf(datarange)))]; 
 
 Gyaw = inputs_yaw\output_yaw;
 
