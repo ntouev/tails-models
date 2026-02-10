@@ -19,7 +19,6 @@ tranges = [4 40];
 
 ac_data(end, :) = [];  % remove the last row
 ac_data.timestamp = ac_data.timestamp - ac_data.timestamp(1);
-ac_data.acc_z = ac_data.acc_z/1000;
 
 %% t, datarange
 fs = 500;
