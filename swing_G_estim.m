@@ -3,9 +3,9 @@ clear;
 close all;
 
 %% log specifics and fixes
-% ac_data = readtable('~/LOGS/swing/20260130_tosca/pitch_test.csv');
-% tranges = [11 16.5]; % roll
-% tranges = [10 19]; % pitch
+% ac_data = readtable('~/LOGS/swing/20260130_tosca/yaw_test.csv');
+% % tranges = [11 16.5]; % roll
+% % tranges = [10 19]; % pitch
 % tranges = [8 11; 17 19]; % yaw
 
 % ac_data = readtable('~/LOGS/swing/20260210_G_tuning/roll-pitch-yaw.csv');
@@ -47,7 +47,7 @@ cmd_BR = interp1(ac_data.timestamp, ac_data.cmd_BR, t, "linear", "extrap");
 cmd_BL = interp1(ac_data.timestamp, ac_data.cmd_BL, t, "linear", "extrap");
 
 %% 1st order actuator dynamics (pprz units)
-G1 = tf(1, [1/30 1]);
+G1 = tf(1, [1/10 1]);
 actTL = lsim(G1, cmd_TL, t);
 actTR = lsim(G1, cmd_TR, t);
 actBR = lsim(G1, cmd_BR, t);
@@ -55,7 +55,7 @@ actBL = lsim(G1, cmd_BL, t);
 
 %% filter with Butterworth (+ Notch???)
 % Butterworth
-filter_freq = 5;
+filter_freq = 2;
 [b, a] = butter(2,filter_freq/(fs/2));
 
 pf = filter(b, a, p, get_ic(b,a,p(1)));
@@ -86,18 +86,24 @@ actBRf_d = [zeros(1,1); diff(actBRf,1)]*fs;
 actBLf_d = [zeros(1,1); diff(actBLf,1)]*fs;
 
 %% Roll effectiveness
+% output_roll = pf_d(datarange);
+% inputs_roll = [actTLf(datarange), actTRf(datarange), actBRf(datarange), actBLf(datarange)]; 
 output_roll = pf_dd(datarange);
 inputs_roll = [actTLf_d(datarange), actTRf_d(datarange), actBRf_d(datarange), actBLf_d(datarange)]; 
 
 Groll = inputs_roll\output_roll;
 
 %% Pitch effectiveness
+% output_pitch = qf_d(datarange);
+% inputs_pitch = [actTLf(datarange), actTRf(datarange), actBRf(datarange), actBLf(datarange)];
 output_pitch = qf_dd(datarange);
 inputs_pitch = [actTLf_d(datarange), actTRf_d(datarange), actBRf_d(datarange), actBLf_d(datarange)];
 
 Gpitch = inputs_pitch\output_pitch;
 
 %% Yaw effectiveness
+% output_yaw = rf_d(datarange);
+% inputs_yaw = [actTLf(datarange), actTRf(datarange), actBRf(datarange), actBLf(datarange)]; 
 output_yaw = rf_dd(datarange);
 inputs_yaw = [actTLf_d(datarange), actTRf_d(datarange), actBRf_d(datarange), actBLf_d(datarange)]; 
 
@@ -106,6 +112,8 @@ Gyaw = inputs_yaw\output_yaw;
 %% Thrust effectiveness
 output_thr = acczf(datarange);
 inputs_thr = [actTLf(datarange), actTRf(datarange), actBRf(datarange), actBLf(datarange)]; 
+% output_thr = acczf_d(datarange);
+% inputs_thr = [actTLf_d(datarange), actTRf_d(datarange), actBRf_d(datarange), actBLf_d(datarange)]; 
 
 Gthr = inputs_thr\output_thr;
 
@@ -115,8 +123,8 @@ M = [
     Gpitch(:).';
     Gyaw(:).';
     Gthr(:).'
-];
-fprintf('%.8f %.8f %.8f %.8f\n', M.');
+] * 1000;
+fprintf('%.1f %.1f %.1f %.1f\n', M.');
 
 figure('Name','Effectiveness fit');
 tiledlayout(4, 1, 'Padding', 'compact', 'TileSpacing', 'compact');
