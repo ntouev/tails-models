@@ -1,6 +1,6 @@
 close all;
 
-wc = 10; % actuator bandwidth
+wc = 11; % actuator bandwidth
 
 G = tf(1, [1/wc 1], 'InputDelay', 0.0);
 I = tf(1,[1 0]); % integrator

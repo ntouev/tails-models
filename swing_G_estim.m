@@ -47,7 +47,7 @@ cmd_BR = interp1(ac_data.timestamp, ac_data.cmd_BR, t, "linear", "extrap");
 cmd_BL = interp1(ac_data.timestamp, ac_data.cmd_BL, t, "linear", "extrap");
 
 %% 1st order actuator dynamics (pprz units)
-G1 = tf(1, [1/10 1]);
+G1 = tf(1, [1/11 1]);
 actTL = lsim(G1, cmd_TL, t);
 actTR = lsim(G1, cmd_TR, t);
 actBR = lsim(G1, cmd_BR, t);
